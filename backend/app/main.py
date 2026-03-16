@@ -1,11 +1,8 @@
-from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.routes import router
-
-app = FastAPI()
 
 origins = [
-    "http://localhost:5173"
+    "http://localhost:5173",
+    "https://quantumqaanalysis.vercel.app"
 ]
 
 app.add_middleware(
@@ -15,5 +12,3 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-app.include_router(router)
