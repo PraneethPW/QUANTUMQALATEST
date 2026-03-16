@@ -1,6 +1,6 @@
 import { useState } from "react"
-import axios from "axios"
 import { motion } from "framer-motion"
+import API from "../services/api"
 
 const QuantumApp = () => {
 
@@ -12,7 +12,6 @@ const QuantumApp = () => {
   const [embeddingDim, setEmbeddingDim] = useState<number | null>(null)
   const [matches, setMatches] = useState<number | null>(null)
   const [nodes, setNodes] = useState<number | null>(null)
-
 
 
   const generateTelemetry = () => {
@@ -30,7 +29,6 @@ const QuantumApp = () => {
   }
 
 
-
   const askQuestion = async () => {
 
     if (!question) return
@@ -41,7 +39,7 @@ const QuantumApp = () => {
 
     try {
 
-      const res = await axios.post("http://localhost:8000/ask", {
+      const res = await API.post("/ask", {
         question
       })
 
@@ -58,10 +56,10 @@ const QuantumApp = () => {
   }
 
 
-
   return (
 
     <div className="min-h-screen bg-[#020617] text-white flex flex-col">
+
 
       {/* Header */}
 
@@ -97,7 +95,9 @@ const QuantumApp = () => {
                 User Query
               </p>
 
-              <p>{question}</p>
+              <p>
+                {question}
+              </p>
 
             </motion.div>
 
@@ -187,7 +187,6 @@ const QuantumApp = () => {
             </h3>
 
           </div>
-
 
         </div>
 
