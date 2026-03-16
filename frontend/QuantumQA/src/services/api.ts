@@ -1,5 +1,7 @@
 import axios from "axios"
 
-export const API = axios.create({
-  baseURL: "http://localhost:8000"
+const API = axios.create({
+  baseURL: "https://quantumqalatest-production.up.railway.app"
 })
+
+export default API
