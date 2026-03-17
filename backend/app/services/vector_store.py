@@ -1,88 +1,43 @@
+import os
 import psycopg2
-from app.core.config import DATABASE_URL
 
 
 class VectorStore:
 
     def __init__(self):
-        """
-        Initialize Neon PostgreSQL connection
-        """
-        self.conn = psycopg2.connect(DATABASE_URL)
+        self.db_url = os.getenv("DATABASE_URL")
 
+    def search(self, query_embedding):
 
-    def insert(self, content, embedding):
-        """
-        Insert document and embedding into vector DB
-        """
+        conn = None
+        cursor = None
 
-        cursor = self.conn.cursor()
+        try:
+            # open fresh connection
+            conn = psycopg2.connect(self.db_url)
+            cursor = conn.cursor()
 
-        # Convert numpy vector -> pgvector string format
-        vector_str = "[" + ",".join(map(str, embedding.tolist())) + "]"
+            cursor.execute(
+                """
+                SELECT content
+                FROM documents
+                ORDER BY embedding <-> %s
+                LIMIT 5
+                """,
+                (query_embedding,)
+            )
 
-        query = """
-        INSERT INTO documents (content, embedding)
-        VALUES (%s, %s::vector)
-        """
+            rows = cursor.fetchall()
 
-        cursor.execute(query, (content, vector_str))
+            return [row[0] for row in rows]
 
-        self.conn.commit()
+        except Exception as e:
+            print("Vector search error:", e)
+            return []
 
-        cursor.close()
+        finally:
+            if cursor:
+                cursor.close()
 
-
-    def search(self, embedding, limit=3):
-        """
-        Perform vector similarity search
-        """
-
-        cursor = self.conn.cursor()
-
-        vector_str = "[" + ",".join(map(str, embedding.tolist())) + "]"
-
-        query = """
-        SELECT content
-        FROM documents
-        ORDER BY embedding <-> %s::vector
-        LIMIT %s
-        """
-
-        cursor.execute(query, (vector_str, limit))
-
-        rows = cursor.fetchall()
-
-        cursor.close()
-
-        return [row[0] for row in rows]
-
-
-    def get_all_documents(self):
-        """
-        Fetch all stored documents (useful for debugging)
-        """
-
-        cursor = self.conn.cursor()
-
-        cursor.execute("SELECT id, content FROM documents")
-
-        rows = cursor.fetchall()
-
-        cursor.close()
-
-        return rows
-
-
-    def delete_all(self):
-        """
-        Remove all documents
-        """
-
-        cursor = self.conn.cursor()
-
-        cursor.execute("DELETE FROM documents")
-
-        self.conn.commit()
-
-        cursor.close()
+            if conn:
+                conn.close()
