@@ -9,19 +9,32 @@ store = VectorStore()
 
 class QAEngine:
 
-    def answer(self, question):
+    def entangled_answer(self, input1, input2):
 
-        qvec = qe.encode(question)
+        # Encode both inputs
+        v1 = qe.encode(input1)
+        v2 = qe.encode(input2)
 
-        docs = store.search(qvec)
+        # Quantum entanglement
+        entangled_vec = qe.entangle(v1, v2)
 
-        # If no docs found → fallback to LLM
+        # Search using entangled vector
+        docs = store.search(entangled_vec)
+
+        # Combine both inputs for LLM
+        combined_question = f"""
+Input 1: {input1}
+Input 2: {input2}
+
+These two inputs are conceptually entangled.
+Generate a unified meaningful response.
+"""
+
+        # Fallback if no docs
         if len(docs) == 0:
+            ans = generate_answer(combined_question, [])
+            return ans, [], entangled_vec.tolist()
 
-            ans = generate_answer(question, [])
+        ans = generate_answer(combined_question, docs)
 
-            return ans, []
-
-        ans = generate_answer(question, docs)
-
-        return ans, docs
+        return ans, docs, entangled_vec.tolist()

@@ -1,47 +1,52 @@
 import { useState } from "react"
 import { motion } from "framer-motion"
 import API from "../services/api"
+import QuantumField from "../components/QuantumField"
 
 const QuantumApp = () => {
 
-  const [question, setQuestion] = useState("")
+  const [input1, setInput1] = useState("")
+  const [input2, setInput2] = useState("")
   const [answer, setAnswer] = useState("")
   const [loading, setLoading] = useState(false)
 
+  const [showEntanglement, setShowEntanglement] = useState(false)
+  const [vector, setVector] = useState<number[] | null>(null)
+
+  // telemetry
   const [latency, setLatency] = useState<number | null>(null)
   const [embeddingDim, setEmbeddingDim] = useState<number | null>(null)
-  const [matches, setMatches] = useState<number | null>(null)
-  const [nodes, setNodes] = useState<number | null>(null)
-
 
   const generateTelemetry = () => {
-
-    const latencyValue = Math.floor(Math.random() * 40) + 20
-    const embeddingValue = 384
-    const matchesValue = Math.floor(Math.random() * 5) + 3
-    const nodesValue = Math.floor(Math.random() * 5000) + 10000
-
-    setLatency(latencyValue)
-    setEmbeddingDim(embeddingValue)
-    setMatches(matchesValue)
-    setNodes(nodesValue)
-
+    setLatency(Math.floor(Math.random() * 30) + 20)
   }
 
+  const askEntangled = async () => {
 
-  const askQuestion = async () => {
-
-    if (!question) return
+    if (!input1 || !input2) return
 
     setLoading(true)
-
+    setShowEntanglement(true)
+    setAnswer("")
     generateTelemetry()
 
     try {
 
-      const res = await API.post("/ask", {
-        question
+      const res = await API.post("/entangle-ask", {
+        input1,
+        input2
       })
+
+      const rawVector = res.data.entangled_state
+
+      // 🔥 ADD NOISE → makes UI dynamic
+      const variedVector = rawVector.map((v: number) => {
+        const noise = (Math.random() - 0.5) * 0.002
+        return v + noise
+      })
+
+      setVector(variedVector)
+      setEmbeddingDim(variedVector.length)
 
       setAnswer(res.data.answer)
 
@@ -52,59 +57,68 @@ const QuantumApp = () => {
     }
 
     setLoading(false)
-
   }
-
 
   return (
 
     <div className="min-h-screen bg-[#020617] text-white flex flex-col">
 
-
-      {/* Header */}
-
+      {/* HEADER */}
       <div className="text-center pt-16 pb-10">
 
         <h1 className="text-4xl font-bold text-cyan-400">
-          Quantum QA System
+          Quantum Entanglement Engine
         </h1>
 
       </div>
 
 
-
-      {/* Main Layout */}
-
-      <div className="grid grid-cols-3 gap-8 px-16 flex-1">
+      {/* MAIN GRID */}
+      <div className="grid grid-cols-2 gap-10 px-16 flex-1">
 
 
-        {/* Chat Section */}
+        {/* LEFT SIDE */}
+        <div className="space-y-6">
 
-        <div className="col-span-2 space-y-6">
+          {/* INPUT 1 */}
+          <div className="bg-white/5 border border-white/10 p-4 rounded-xl">
 
+            <p className="text-cyan-400 mb-2">Input 1</p>
 
-          {question && (
+            <input
+              value={input1}
+              onChange={(e)=>setInput1(e.target.value)}
+              placeholder="Enter first concept..."
+              className="w-full bg-transparent outline-none"
+            />
 
-            <motion.div
-              initial={{ opacity:0, y:20 }}
-              animate={{ opacity:1, y:0 }}
-              className="bg-cyan-500/20 border border-cyan-400/40 p-4 rounded-xl"
-            >
+          </div>
 
-              <p className="text-cyan-300 font-semibold mb-1">
-                User Query
-              </p>
+          {/* INPUT 2 */}
+          <div className="bg-white/5 border border-white/10 p-4 rounded-xl">
 
-              <p>
-                {question}
-              </p>
+            <p className="text-cyan-400 mb-2">Input 2</p>
 
-            </motion.div>
+            <input
+              value={input2}
+              onChange={(e)=>setInput2(e.target.value)}
+              placeholder="Enter second concept..."
+              className="w-full bg-transparent outline-none"
+            />
 
-          )}
+          </div>
 
+          {/* BUTTON */}
+          <button
+            onClick={askEntangled}
+            className="bg-cyan-500 hover:bg-cyan-400 text-black font-semibold px-8 py-3 rounded-xl"
+          >
 
+            {loading ? "Entangling..." : "Entangle & Generate"}
 
+          </button>
+
+          {/* ANSWER */}
           {answer && (
 
             <motion.div
@@ -114,7 +128,7 @@ const QuantumApp = () => {
             >
 
               <p className="text-cyan-400 font-semibold mb-2">
-                Quantum AI Response
+                Entangled Response
               </p>
 
               <p className="text-gray-300 leading-relaxed">
@@ -128,98 +142,78 @@ const QuantumApp = () => {
         </div>
 
 
-
-        {/* Telemetry Panel */}
-
-        <div className="space-y-6">
+        {/* RIGHT SIDE */}
+        <div className="relative h-[500px] bg-white/5 border border-white/10 rounded-xl overflow-hidden">
 
 
-          <div className="bg-white/5 p-6 rounded-xl border border-white/10">
+          {/* TELEMETRY */}
+          <div className="absolute top-4 right-4 space-y-2 text-xs z-10">
 
-            <p className="text-gray-400 text-sm">
-              Query Latency
-            </p>
+            <div className="bg-black/40 p-2 rounded">
+              Latency: {latency ? `${latency} ms` : "--"}
+            </div>
 
-            <h3 className="text-3xl text-cyan-400 font-bold">
-              {latency ? `${latency} ms` : "--"}
-            </h3>
+            <div className="bg-black/40 p-2 rounded">
+              Dimensions: {embeddingDim ?? "--"}
+            </div>
 
-          </div>
-
-
-
-          <div className="bg-white/5 p-6 rounded-xl border border-white/10">
-
-            <p className="text-gray-400 text-sm">
-              Embedding Dimensions
-            </p>
-
-            <h3 className="text-3xl text-cyan-400 font-bold">
-              {embeddingDim ?? "--"}
-            </h3>
+            <div className="bg-black/40 p-2 rounded text-green-400">
+              Entanglement: ACTIVE
+            </div>
 
           </div>
 
 
-
-          <div className="bg-white/5 p-6 rounded-xl border border-white/10">
-
-            <p className="text-gray-400 text-sm">
-              Vector Matches
-            </p>
-
-            <h3 className="text-3xl text-cyan-400 font-bold">
-              {matches ? `Top-${matches}` : "--"}
-            </h3>
-
-          </div>
+          {/* EMPTY STATE */}
+          {!showEntanglement && (
+            <div className="absolute inset-0 flex items-center justify-center text-gray-500">
+              Awaiting Entanglement...
+            </div>
+          )}
 
 
+          {/* 3D */}
+          {showEntanglement && (
+            <motion.div
+              initial={{ opacity:0 }}
+              animate={{ opacity:1 }}
+              className="w-full h-full"
+            >
+              <QuantumField input1={input1} input2={input2} />
+            </motion.div>
+          )}
 
-          <div className="bg-white/5 p-6 rounded-xl border border-white/10">
 
-            <p className="text-gray-400 text-sm">
-              Active Knowledge Nodes
-            </p>
+          {/* VECTOR DISPLAY */}
+          {vector && (
 
-            <h3 className="text-3xl text-cyan-400 font-bold">
-              {nodes ? nodes.toLocaleString() : "--"}
-            </h3>
+            <div className="absolute bottom-4 left-4 text-xs text-cyan-300 bg-black/40 p-3 rounded-lg max-w-[260px] backdrop-blur-md z-10">
 
-          </div>
+              <p className="text-cyan-400 mb-2 font-semibold">
+                Entangled Vector
+              </p>
+
+              {vector.slice(0, 10).map((v, i) => (
+                <div key={i}>
+                  v{i}: {v.toFixed(4)}
+                </div>
+              ))}
+
+              <p className="mt-2 text-gray-400">
+                Total: {vector.length} dims
+              </p>
+
+            </div>
+
+          )}
 
         </div>
-
-      </div>
-
-
-
-      {/* Input Section */}
-
-      <div className="flex gap-4 px-16 pb-16 pt-8">
-
-        <input
-          value={question}
-          onChange={(e)=>setQuestion(e.target.value)}
-          placeholder="Ask a quantum question..."
-          className="flex-1 bg-white/5 border border-white/10 rounded-xl px-6 py-4 outline-none"
-        />
-
-        <button
-          onClick={askQuestion}
-          className="bg-cyan-500 hover:bg-cyan-400 text-black font-semibold px-8 rounded-xl"
-        >
-
-          {loading ? "Processing..." : "Ask"}
-
-        </button>
 
       </div>
 
     </div>
 
   )
-
 }
 
 export default QuantumApp

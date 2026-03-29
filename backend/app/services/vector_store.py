@@ -21,10 +21,10 @@ class VectorStore:
                 """
                 SELECT content
                 FROM documents
-                ORDER BY embedding <-> %s
+                ORDER BY embedding <-> %s::vector
                 LIMIT 5
                 """,
-                (query_embedding,)
+                (query_embedding.tolist(),)
             )
 
             rows = cursor.fetchall()

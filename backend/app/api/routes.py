@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.models.schemas import QuestionRequest, IngestRequest
+from app.models.schemas import DualQuestionRequest, IngestRequest
 from app.services.qa_engine import QAEngine
 from app.services.quantum_embedding import QuantumEmbedding
 from app.services.vector_store import VectorStore
@@ -13,27 +13,33 @@ store = VectorStore()
 
 @router.get("/")
 def health():
-    return {"message": "Quantum QA API running"}
+    return {"message": "Quantum Entanglement API running"}
 
 
-@router.post("/ask")
-def ask_question(req: QuestionRequest):
+# 🔥 NEW MAIN ENDPOINT
+@router.post("/entangle-ask")
+def entangle_ask(req: DualQuestionRequest):
 
-    answer, context = engine.answer(req.question)
+    answer, context, entangled_state = engine.entangled_answer(
+        req.input1,
+        req.input2
+    )
 
     return {
         "answer": answer,
-        "context": context
+        "context": context,
+        "entangled_state": entangled_state
     }
 
 
-@router.post("/ingest")
-def ingest_document(req: IngestRequest):
+# # existing ingest stays same
+# @router.post("/ingest")
+# def ingest_document(req: IngestRequest):
 
-    embedding = qe.encode(req.text)
+#     embedding = qe.encode(req.text)
 
-    store.insert(req.text, embedding)
+#     store.insert(req.text, embedding)
 
-    return {
-        "status": "document stored"
-    }
+#     return {
+#         "status": "document stored"
+#     }

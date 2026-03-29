@@ -3,23 +3,33 @@ import { OrbitControls } from "@react-three/drei"
 import ParticleSystem from "./ParticleSystem"
 import EntanglementLines from "./EntanglementLines"
 
-const QuantumField = () => {
+type Props = {
+  input1?: string
+  input2?: string
+}
 
-return (
+const QuantumField = ({ input1, input2 }: Props) => {
 
-<Canvas camera={{position:[0,0,5]}}>
+  return (
 
-<ambientLight intensity={0.5} />
+    <Canvas camera={{ position: [0, 0, 5] }}>
 
-<ParticleSystem />
+      {/* Lighting */}
+      <ambientLight intensity={0.6} />
+      <pointLight position={[5, 5, 5]} intensity={1} />
 
-<EntanglementLines />
+      {/* Background particle field */}
+      <ParticleSystem />
 
-<OrbitControls enableZoom={false} />
+      {/* 🔥 Entanglement Nodes + Connection */}
+      <EntanglementLines input1={input1} input2={input2} />
 
-</Canvas>
+      {/* Controls */}
+      <OrbitControls enableZoom={false} />
 
-)
+    </Canvas>
+
+  )
 
 }
 
