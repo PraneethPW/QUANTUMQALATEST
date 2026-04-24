@@ -1,6 +1,6 @@
 import { Routes, Route } from "react-router-dom"
 import Landing from "./pages/Landing"
-import QuantumApp from "./pages/QuantumApp"
+import EmbeddingVisualizer from "./pages/EmbeddingVisualizer.tsx"
 
 function App() {
 
@@ -10,7 +10,7 @@ function App() {
 
       <Route path="/" element={<Landing />} />
 
-      <Route path="/app" element={<QuantumApp />} />
+      <Route path="/visualize" element={<EmbeddingVisualizer />} />
 
     </Routes>
 

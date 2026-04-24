@@ -7,7 +7,7 @@ app = FastAPI()
 # CORS configuration
 origins = [
     "http://localhost:5173",
-    "https://quantumqaanalysis.vercel.app"
+    "https://quantumqaanalysis.vercel.app",
 ]
 
 app.add_middleware(

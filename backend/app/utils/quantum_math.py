@@ -36,6 +36,20 @@ class QuantumMath:
 
         return np.kron(state1, state2)
 
+    @staticmethod
+    def contextual_entangle(state1, state2, mix=0.55, interaction=0.25):
+        """
+        Entanglement-like interaction that stays in the original vector space.
+
+        We blend superposition with an elementwise interaction term so we can
+        visualize the result without exploding dimensionality (unlike kron).
+        """
+        a = QuantumMath.normalize_state(state1)
+        b = QuantumMath.normalize_state(state2)
+
+        combined = (1.0 - mix) * a + mix * b + interaction * (a * b)
+        return QuantumMath.normalize_state(combined)
+
 
     @staticmethod
     def fidelity(state1, state2):

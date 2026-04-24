@@ -1,7 +1,8 @@
 from fastapi import APIRouter
-from app.models.schemas import DualQuestionRequest, IngestRequest
+from app.models.schemas import DualQuestionRequest, EmbeddingVizRequest, IngestRequest
 from app.services.qa_engine import QAEngine
 from app.services.quantum_embedding import QuantumEmbedding
+from app.services.embedding_visualizer import build_embedding_visualization
 from app.services.vector_store import VectorStore
 
 router = APIRouter()
@@ -30,6 +31,15 @@ def entangle_ask(req: DualQuestionRequest):
         "context": context,
         "entangled_state": entangled_state
     }
+
+
+@router.post("/embedding-visualize")
+def embedding_visualize(req: EmbeddingVizRequest):
+    return build_embedding_visualization(
+        req.text,
+        include_phrases=req.include_phrases,
+        max_related=req.max_related,
+    )
 
 
 # # existing ingest stays same

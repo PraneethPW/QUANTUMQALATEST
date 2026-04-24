@@ -3,6 +3,7 @@ uvicorn
 python-dotenv
 numpy
 sentence-transformers
+scikit-learn
 psycopg2-binary
 sqlalchemy
 pgvector

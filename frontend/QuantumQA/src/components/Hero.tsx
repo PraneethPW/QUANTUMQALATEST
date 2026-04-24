@@ -49,7 +49,7 @@ const Hero = () => {
         <motion.button
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.95 }}
-          onClick={() => navigate("/app")}
+          onClick={() => navigate("/visualize")}
           className="mt-10 bg-primary text-black px-8 py-4 rounded-xl text-lg font-medium shadow-lg"
         >
 

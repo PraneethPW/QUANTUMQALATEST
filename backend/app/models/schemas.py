@@ -13,3 +13,9 @@ class AnswerResponse(BaseModel):
 
 class IngestRequest(BaseModel):
     text: str
+
+
+class EmbeddingVizRequest(BaseModel):
+    text: str
+    include_phrases: bool = True
+    max_related: int = 16
