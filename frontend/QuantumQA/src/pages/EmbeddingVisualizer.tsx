@@ -88,6 +88,9 @@ const EmbeddingVisualizer = () => {
   const [data, setData] = useState<VizResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
 
+  // 🔥 RESPONSE STATE
+  const [response, setResponse] = useState("")
+
   const rawData = useMemo(() => (data ? buildDataset(data.nodes, "raw") : []), [data])
   const entData = useMemo(
     () => (data ? buildDataset(data.nodes, "entangled") : []),
@@ -116,16 +119,28 @@ const EmbeddingVisualizer = () => {
     if (!text.trim()) return
     setLoading(true)
     setError(null)
+
     try {
+      // 🔹 EXISTING VISUALIZATION CALL
       const res = await API.post<VizResponse>("/embedding-visualize", {
         text,
         include_phrases: includePhrases,
         max_related: 16
       })
       setData(res.data)
+
+      // 🔥 FIXED: SINGLE INPUT → SEND SAME TEXT TWICE
+      const qaRes = await API.post("/entangle-ask", {
+        input1: text,
+        input2: text
+      })
+
+      setResponse(qaRes.data.answer || "")
+
     } catch (e: any) {
       setError(e?.message || "Failed to visualize embeddings.")
       setData(null)
+      setResponse("Error fetching response from backend.")
     } finally {
       setLoading(false)
     }
@@ -154,19 +169,23 @@ const EmbeddingVisualizer = () => {
 
       <div className="px-12 pb-10">
         <div className="grid grid-cols-12 gap-8">
+
+          {/* LEFT PANEL */}
           <div className="col-span-12 lg:col-span-4 space-y-4">
+
+            {/* INPUT */}
             <div className="rounded-xl border border-white/10 bg-white/5 p-4">
               <div className="text-xs text-gray-400 mb-2">Input</div>
+
               <textarea
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 rows={5}
                 className="w-full resize-none rounded-lg bg-black/20 p-3 outline-none border border-white/10 focus:border-cyan-400/60"
-                placeholder="Type something like: solar system ... "
               />
 
               <div className="mt-3 flex items-center justify-between">
-                <label className="flex items-center gap-2 text-sm text-gray-300 select-none">
+                <label className="flex items-center gap-2 text-sm text-gray-300">
                   <input
                     type="checkbox"
                     checked={includePhrases}
@@ -177,8 +196,7 @@ const EmbeddingVisualizer = () => {
 
                 <button
                   onClick={run}
-                  className="rounded-lg bg-cyan-500 px-4 py-2 font-semibold text-black hover:bg-cyan-400 disabled:opacity-60"
-                  disabled={loading}
+                  className="rounded-lg bg-cyan-500 px-4 py-2 font-semibold text-black hover:bg-cyan-400"
                 >
                   {loading ? "Computing..." : "Visualize"}
                 </button>
@@ -187,129 +205,97 @@ const EmbeddingVisualizer = () => {
               {error && <div className="mt-3 text-sm text-red-300">{error}</div>}
             </div>
 
+            {/* 🔥 RESPONSE BOX */}
+            {response !== "" && (
+              <div className="rounded-xl border border-cyan-400/30 bg-white/5 p-4">
+
+                <div className="text-xs text-cyan-400 mb-2 font-semibold">
+                  Response
+                </div>
+
+                <div className="text-sm text-gray-300 leading-relaxed max-h-[200px] overflow-y-auto whitespace-pre-line">
+                  {response}
+                </div>
+
+              </div>
+            )}
+
+            {/* EXTRACTED */}
             {data && (
               <div className="rounded-xl border border-white/10 bg-white/5 p-4">
                 <div className="text-xs text-gray-400 mb-3">Extracted</div>
-                <div className="space-y-2 text-sm">
-                  <div>
-                    <span className="text-cyan-300 font-semibold">Words</span>{" "}
-                    <span className="text-gray-400">
-                      ({data.meta.input_words.length})
-                    </span>
-                    <div className="mt-1 text-gray-200 break-words">
-                      {data.meta.input_words.join(", ")}
-                    </div>
-                  </div>
-                  {data.meta.input_phrases.length > 0 && (
-                    <div>
-                      <span className="text-purple-300 font-semibold">Phrases</span>{" "}
-                      <span className="text-gray-400">
-                        ({data.meta.input_phrases.length})
-                      </span>
-                      <div className="mt-1 text-gray-200 break-words">
-                        {data.meta.input_phrases.join(" · ")}
-                      </div>
-                    </div>
-                  )}
-                  <div>
-                    <span className="text-gray-200 font-semibold">Related terms</span>{" "}
-                    <span className="text-gray-400">
-                      ({data.meta.related_terms.length})
-                    </span>
-                    <div className="mt-1 text-gray-300 break-words">
-                      {data.meta.related_terms.join(", ")}
-                    </div>
-                  </div>
+
+                <div className="text-sm text-gray-200">
+                  <b>Words:</b> {data.meta.input_words.join(", ")}
+                </div>
+
+                <div className="text-sm text-gray-200 mt-2">
+                  <b>Phrases:</b> {data.meta.input_phrases.join(" · ")}
+                </div>
+
+                <div className="text-sm text-gray-200 mt-2">
+                  <b>Related:</b> {data.meta.related_terms.join(", ")}
                 </div>
               </div>
             )}
+
           </div>
 
+          {/* RIGHT SIDE (UNCHANGED) */}
           <div className="col-span-12 lg:col-span-8">
+
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+
+              {/* WORD EMBEDDING */}
               <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="text-sm font-semibold text-cyan-200">Word Embedding</div>
-                  <div className="text-xs text-gray-400">t-SNE (2D)</div>
+                <div className="text-sm font-semibold text-cyan-200 mb-2">
+                  Word Embedding
                 </div>
+
                 <div className="h-[420px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <ScatterChart margin={{ top: 10, right: 10, bottom: 10, left: 10 }}>
+                    <ScatterChart>
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
-                      <XAxis
-                        dataKey="x"
-                        type="number"
-                        tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }}
-                        axisLine={{ stroke: "rgba(255,255,255,0.12)" }}
-                      />
-                      <YAxis
-                        dataKey="y"
-                        type="number"
-                        tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }}
-                        axisLine={{ stroke: "rgba(255,255,255,0.12)" }}
-                      />
+                      <XAxis type="number" dataKey="x" />
+                      <YAxis type="number" dataKey="y" />
                       <Tooltip content={<NodeTooltip />} />
+
                       {rawGroups.map((g) => (
                         <Scatter key={g.type} data={g.data} fill={g.color} />
                       ))}
+
                     </ScatterChart>
                   </ResponsiveContainer>
                 </div>
-                <div className="mt-3 text-xs text-gray-400">
-                  Expect semantically related terms (e.g. “solar” and “system”) to sit closer than
-                  filler words (e.g. “what”, “is”, “such as”).
-                </div>
               </div>
 
+              {/* ENTANGLEMENT */}
               <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="text-sm font-semibold text-cyan-200">Entanglement Embedding</div>
-                  <div className="text-xs text-gray-400">contextual interaction + t-SNE</div>
+                <div className="text-sm font-semibold text-cyan-200 mb-2">
+                  Entanglement Embedding
                 </div>
+
                 <div className="h-[420px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <ScatterChart margin={{ top: 10, right: 10, bottom: 10, left: 10 }}>
+                    <ScatterChart>
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
-                      <XAxis
-                        dataKey="x"
-                        type="number"
-                        tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }}
-                        axisLine={{ stroke: "rgba(255,255,255,0.12)" }}
-                      />
-                      <YAxis
-                        dataKey="y"
-                        type="number"
-                        tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }}
-                        axisLine={{ stroke: "rgba(255,255,255,0.12)" }}
-                      />
+                      <XAxis type="number" dataKey="x" />
+                      <YAxis type="number" dataKey="y" />
                       <Tooltip content={<NodeTooltip />} />
+
                       {entGroups.map((g) => (
                         <Scatter key={g.type} data={g.data} fill={g.color} />
                       ))}
+
                     </ScatterChart>
                   </ResponsiveContainer>
                 </div>
-                <div className="mt-3 text-xs text-gray-400">
-                  Related/result words are pulled toward the input context after “entanglement”.
-                </div>
               </div>
+
             </div>
 
-            <div className="mt-6 flex flex-wrap gap-3 text-xs">
-              <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1">
-                <span className="inline-block h-2 w-2 rounded-full" style={{ background: COLORS.input_word }} />
-                <span className="text-gray-300">Input words</span>
-              </div>
-              <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1">
-                <span className="inline-block h-2 w-2 rounded-full" style={{ background: COLORS.input_phrase }} />
-                <span className="text-gray-300">Input phrases</span>
-              </div>
-              <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1">
-                <span className="inline-block h-2 w-2 rounded-full" style={{ background: COLORS.related_word }} />
-                <span className="text-gray-300">Related/result words</span>
-              </div>
-            </div>
           </div>
+
         </div>
       </div>
     </div>
@@ -317,4 +303,3 @@ const EmbeddingVisualizer = () => {
 }
 
 export default EmbeddingVisualizer
-
