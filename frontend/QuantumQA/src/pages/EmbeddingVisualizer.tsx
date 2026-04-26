@@ -82,7 +82,7 @@ function buildDataset(nodes: VizNode[], mode: "raw" | "entangled") {
 }
 
 const EmbeddingVisualizer = () => {
-  const [text, setText] = useState("solar system such as the comet in fact")
+  const [text, setText] = useState("")
   const [includePhrases, setIncludePhrases] = useState(true)
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState<VizResponse | null>(null)
