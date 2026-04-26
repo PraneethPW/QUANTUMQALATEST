@@ -152,8 +152,6 @@ const EmbeddingVisualizer = () => {
         <div>
           <h1 className="text-3xl font-bold text-cyan-300">Embedding Entanglement Map</h1>
           <p className="text-sm text-gray-400 mt-2 max-w-[70ch]">
-            Enter text → words + phrases are embedded → related terms are pulled from results → a
-            contextual “entanglement” interaction is applied → t-SNE shows the relationship map.
           </p>
         </div>
 
