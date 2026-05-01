@@ -7,9 +7,7 @@ import {
   ScatterChart,
   Tooltip,
   XAxis,
-  YAxis,
-  BarChart,
-  Bar
+  YAxis
 } from "recharts"
 import API from "../services/api"
 
@@ -83,21 +81,6 @@ function buildDataset(nodes: VizNode[], mode: "raw" | "entangled") {
   }))
 }
 
-//////////////////////////////////////////////////////
-// 🔥 NEW: Dynamic comparison generator
-//////////////////////////////////////////////////////
-const generateDynamicComparison = (text: string) => {
-  const seed = text.length
-
-  return [
-    { metric: "Semantic Accuracy", quantum: 85 + (seed % 10), phrase: 65 + (seed % 8) },
-    { metric: "Context Awareness", quantum: 88 + (seed % 7), phrase: 60 + (seed % 10) },
-    { metric: "Relation Understanding", quantum: 90 + (seed % 6), phrase: 58 + (seed % 9) },
-    { metric: "Reasoning Depth", quantum: 87 + (seed % 8), phrase: 62 + (seed % 7) }
-  ]
-}
-//////////////////////////////////////////////////////
-
 const EmbeddingVisualizer = () => {
   const [text, setText] = useState("")
   const [includePhrases, setIncludePhrases] = useState(true)
@@ -105,10 +88,8 @@ const EmbeddingVisualizer = () => {
   const [data, setData] = useState<VizResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
 
+  // 🔥 RESPONSE STATE
   const [response, setResponse] = useState("")
-
-  // 🔥 NEW STATE
-  const [comparisonData, setComparisonData] = useState<any[]>([])
 
   const rawData = useMemo(() => (data ? buildDataset(data.nodes, "raw") : []), [data])
   const entData = useMemo(
@@ -140,6 +121,7 @@ const EmbeddingVisualizer = () => {
     setError(null)
 
     try {
+      // 🔹 EXISTING VISUALIZATION CALL
       const res = await API.post<VizResponse>("/embedding-visualize", {
         text,
         include_phrases: includePhrases,
@@ -147,15 +129,13 @@ const EmbeddingVisualizer = () => {
       })
       setData(res.data)
 
+      // 🔥 FIXED: SINGLE INPUT → SEND SAME TEXT TWICE
       const qaRes = await API.post("/entangle-ask", {
         input1: text,
         input2: text
       })
 
       setResponse(qaRes.data.answer || "")
-
-      // 🔥 NEW: update comparison graph
-      setComparisonData(generateDynamicComparison(text))
 
     } catch (e: any) {
       setError(e?.message || "Failed to visualize embeddings.")
@@ -171,11 +151,18 @@ const EmbeddingVisualizer = () => {
       <div className="px-12 pt-10 pb-6 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-cyan-300">Embedding Entanglement Map</h1>
+          <p className="text-sm text-gray-400 mt-2 max-w-[70ch]">
+          </p>
         </div>
 
-        <Link to="/" className="rounded-lg border border-white/10 px-4 py-2 hover:bg-white/5">
-          Home
-        </Link>
+        <div className="flex items-center gap-3 text-sm">
+          <Link
+            to="/"
+            className="rounded-lg border border-white/10 px-4 py-2 hover:bg-white/5"
+          >
+            Home
+          </Link>
+        </div>
       </div>
 
       <div className="px-12 pb-10">
@@ -186,80 +173,125 @@ const EmbeddingVisualizer = () => {
 
             {/* INPUT */}
             <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+              <div className="text-xs text-gray-400 mb-2">Input</div>
+
               <textarea
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 rows={5}
-                className="w-full resize-none rounded-lg bg-black/20 p-3"
+                className="w-full resize-none rounded-lg bg-black/20 p-3 outline-none border border-white/10 focus:border-cyan-400/60"
               />
 
-              <button onClick={run} className="mt-3 bg-cyan-500 px-4 py-2 rounded">
-                {loading ? "Computing..." : "Visualize"}
-              </button>
+              <div className="mt-3 flex items-center justify-between">
+                <label className="flex items-center gap-2 text-sm text-gray-300">
+                  <input
+                    type="checkbox"
+                    checked={includePhrases}
+                    onChange={(e) => setIncludePhrases(e.target.checked)}
+                  />
+                  Include phrase embeddings
+                </label>
+
+                <button
+                  onClick={run}
+                  className="rounded-lg bg-cyan-500 px-4 py-2 font-semibold text-black hover:bg-cyan-400"
+                >
+                  {loading ? "Computing..." : "Visualize"}
+                </button>
+              </div>
+
+              {error && <div className="mt-3 text-sm text-red-300">{error}</div>}
             </div>
 
-            {/* RESPONSE */}
-            {response && (
+            {/* 🔥 RESPONSE BOX */}
+            {response !== "" && (
               <div className="rounded-xl border border-cyan-400/30 bg-white/5 p-4">
-                <div className="text-sm text-gray-300">{response}</div>
+
+                <div className="text-xs text-cyan-400 mb-2 font-semibold">
+                  Response
+                </div>
+
+                <div className="text-sm text-gray-300 leading-relaxed max-h-[200px] overflow-y-auto whitespace-pre-line">
+                  {response}
+                </div>
+
               </div>
             )}
 
-            {/* 🔥 NEW GRAPH INSERTED HERE */}
-            {response && comparisonData.length > 0 && (
+            {/* EXTRACTED */}
+            {data && (
               <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <div className="text-xs text-gray-400 mb-3">Extracted</div>
 
-                <div className="text-sm text-cyan-300 mb-3 font-semibold">
-                  Model Performance Comparison
+                <div className="text-sm text-gray-200">
+                  <b>Words:</b> {data.meta.input_words.join(", ")}
                 </div>
 
-                <ResponsiveContainer width="100%" height={260}>
-                  <BarChart data={comparisonData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                    <XAxis dataKey="metric" stroke="#9ca3af" />
-                    <YAxis stroke="#9ca3af" />
-                    <Tooltip />
+                <div className="text-sm text-gray-200 mt-2">
+                  <b>Phrases:</b> {data.meta.input_phrases.join(" · ")}
+                </div>
 
-                    <Bar dataKey="quantum" fill="#22d3ee" />
-                    <Bar dataKey="phrase" fill="#a78bfa" />
-
-                  </BarChart>
-                </ResponsiveContainer>
-
+                <div className="text-sm text-gray-200 mt-2">
+                  <b>Related:</b> {data.meta.related_terms.join(", ")}
+                </div>
               </div>
             )}
 
           </div>
 
-          {/* RIGHT SIDE unchanged */}
+          {/* RIGHT SIDE (UNCHANGED) */}
           <div className="col-span-12 lg:col-span-8">
+
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
 
-              <div className="h-[420px]">
-                <ResponsiveContainer>
-                  <ScatterChart>
-                    <XAxis dataKey="x" />
-                    <YAxis dataKey="y" />
-                    {rawGroups.map((g) => (
-                      <Scatter key={g.type} data={g.data} fill={g.color} />
-                    ))}
-                  </ScatterChart>
-                </ResponsiveContainer>
+              {/* WORD EMBEDDING */}
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <div className="text-sm font-semibold text-cyan-200 mb-2">
+                  Word Embedding
+                </div>
+
+                <div className="h-[420px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ScatterChart>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                      <XAxis type="number" dataKey="x" />
+                      <YAxis type="number" dataKey="y" />
+                      <Tooltip content={<NodeTooltip />} />
+
+                      {rawGroups.map((g) => (
+                        <Scatter key={g.type} data={g.data} fill={g.color} />
+                      ))}
+
+                    </ScatterChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
 
-              <div className="h-[420px]">
-                <ResponsiveContainer>
-                  <ScatterChart>
-                    <XAxis dataKey="x" />
-                    <YAxis dataKey="y" />
-                    {entGroups.map((g) => (
-                      <Scatter key={g.type} data={g.data} fill={g.color} />
-                    ))}
-                  </ScatterChart>
-                </ResponsiveContainer>
+              {/* ENTANGLEMENT */}
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <div className="text-sm font-semibold text-cyan-200 mb-2">
+                  Entanglement Embedding
+                </div>
+
+                <div className="h-[420px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ScatterChart>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                      <XAxis type="number" dataKey="x" />
+                      <YAxis type="number" dataKey="y" />
+                      <Tooltip content={<NodeTooltip />} />
+
+                      {entGroups.map((g) => (
+                        <Scatter key={g.type} data={g.data} fill={g.color} />
+                      ))}
+
+                    </ScatterChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
 
             </div>
+
           </div>
 
         </div>
