@@ -44,9 +44,12 @@ function NodeTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null
   const p = payload[0].payload
   return (
-    <div className="bg-black/70 p-2 rounded text-xs">
-      <div>{p.text}</div>
-      <div>{p.type}</div>
+    <div className="bg-black/70 p-2 rounded text-xs text-white">
+      <div className="font-semibold">{p.text}</div>
+      <div className="text-gray-300">{p.type}</div>
+      <div className="text-gray-400">
+        x: {p.x.toFixed(2)} · y: {p.y.toFixed(2)}
+      </div>
     </div>
   )
 }
@@ -64,21 +67,16 @@ function buildDataset(nodes: VizNode[], mode: "raw" | "entangled") {
 
 const EmbeddingVisualizer = () => {
   const [text, setText] = useState("")
-  const [includePhrases, setIncludePhrases] = useState(true)
+  const includePhrases = true // ✅ FIXED (no unused setter)
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState<VizResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const [response, setResponse] = useState("")
 
-  // NEW
+  // 🆕 Comparison states
   const [phraseResponse, setPhraseResponse] = useState("")
   const [comparisonData, setComparisonData] = useState<any[]>([])
-
-  const rawData = useMemo(
-    () => (data ? buildDataset(data.nodes, "raw") : []),
-    [data]
-  )
 
   const entData = useMemo(
     () => (data ? buildDataset(data.nodes, "entangled") : []),
@@ -103,6 +101,7 @@ const EmbeddingVisualizer = () => {
     setError(null)
 
     try {
+      // 🔹 Embedding Visualization
       const res = await API.post<VizResponse>("/embedding-visualize", {
         text,
         include_phrases: includePhrases,
@@ -111,6 +110,7 @@ const EmbeddingVisualizer = () => {
 
       setData(res.data)
 
+      // 🔹 Quantum Model Response
       const qaRes = await API.post("/entangle-ask", {
         input1: text,
         input2: text
@@ -118,11 +118,12 @@ const EmbeddingVisualizer = () => {
 
       setResponse(qaRes.data.answer || "")
 
-      // 🔥 PHRASE MODEL (SIMULATED)
+      // 🆕 Phrase Model (simulated baseline)
       const fakePhrase = `Phrase-based interpretation of "${text}". It captures surface-level meaning but lacks deep relational reasoning.`
 
       setPhraseResponse(fakePhrase)
 
+      // 🆕 Comparison Metrics
       setComparisonData([
         { metric: "Semantic Accuracy", quantum: 92, phrase: 75 },
         { metric: "Context Awareness", quantum: 95, phrase: 70 },
@@ -142,8 +143,11 @@ const EmbeddingVisualizer = () => {
   return (
     <div className="min-h-screen bg-[#020617] text-white p-10">
 
+      {/* HEADER */}
       <div className="flex justify-between mb-6">
-        <h1 className="text-2xl text-cyan-400">Embedding Visualizer</h1>
+        <h1 className="text-2xl text-cyan-400">
+          Embedding Entanglement Map
+        </h1>
         <Link to="/">Home</Link>
       </div>
 
@@ -151,71 +155,88 @@ const EmbeddingVisualizer = () => {
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
-        className="w-full p-3 bg-black/30 rounded mb-4"
+        placeholder="Enter text to visualize embeddings..."
+        className="w-full p-3 bg-black/30 rounded mb-4 border border-white/10"
       />
-
-      {/* FIXED: includePhrases USED */}
-      <div className="text-xs text-gray-400 mb-2">
-        Phrase Mode: {includePhrases ? "ON" : "OFF"}
-      </div>
 
       <button
         onClick={run}
-        className="bg-cyan-500 px-4 py-2 rounded mb-4"
+        className="bg-cyan-500 px-4 py-2 rounded mb-4 hover:bg-cyan-400 text-black font-semibold"
       >
-        {loading ? "Loading..." : "Run"}
+        {loading ? "Computing..." : "Visualize"}
       </button>
 
-      {/* FIXED: error USED */}
-      {error && <div className="text-red-400 mb-4">{error}</div>}
-
-      {/* RESPONSE */}
-      {response && (
-        <div className="p-4 border rounded mb-4">
-          <p className="text-cyan-400 mb-2">Quantum Response</p>
-          {response}
+      {/* ERROR */}
+      {error && (
+        <div className="text-red-400 mb-4">
+          {error}
         </div>
       )}
 
-      {/* 🔥 COMPARISON */}
+      {/* QUANTUM RESPONSE */}
+      {response && (
+        <div className="p-4 border border-white/10 rounded mb-4 bg-white/5">
+          <p className="text-cyan-400 mb-2 font-semibold">
+            Quantum Response
+          </p>
+          <p className="text-gray-300">{response}</p>
+        </div>
+      )}
+
+      {/* 🔥 COMPARISON SECTION */}
       {response && phraseResponse && (
-        <div className="p-4 border rounded mb-4 space-y-4">
+        <div className="p-4 border border-purple-400/30 rounded mb-6 bg-white/5 space-y-4">
 
-          <p className="text-purple-400">Model Comparison</p>
+          <p className="text-purple-400 font-semibold">
+            Model Comparison (Quantum vs Phrase Embedding)
+          </p>
 
+          {/* SIDE BY SIDE */}
           <div className="grid grid-cols-2 gap-4">
 
-            <div>
-              <p className="text-cyan-400">Quantum Model</p>
-              <p>{response}</p>
+            <div className="bg-black/30 p-3 rounded">
+              <p className="text-cyan-400 mb-2 text-sm">
+                Quantum Model
+              </p>
+              <p className="text-gray-300 text-sm">
+                {response}
+              </p>
             </div>
 
-            <div>
-              <p className="text-purple-400">Phrase Model</p>
-              <p>{phraseResponse}</p>
+            <div className="bg-black/30 p-3 rounded">
+              <p className="text-purple-400 mb-2 text-sm">
+                Phrase Model
+              </p>
+              <p className="text-gray-300 text-sm">
+                {phraseResponse}
+              </p>
             </div>
 
           </div>
 
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={comparisonData}>
-              <XAxis dataKey="metric" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="quantum" fill="#22d3ee" />
-              <Bar dataKey="phrase" fill="#a78bfa" />
-            </BarChart>
-          </ResponsiveContainer>
+          {/* GRAPH */}
+          <div className="h-[260px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={comparisonData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                <XAxis dataKey="metric" stroke="#9ca3af" />
+                <YAxis stroke="#9ca3af" />
+                <Tooltip />
+                <Bar dataKey="quantum" fill="#22d3ee" name="Quantum" />
+                <Bar dataKey="phrase" fill="#a78bfa" name="Phrase" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
 
         </div>
       )}
 
-      {/* FIXED: entGroups USED */}
-      <ResponsiveContainer width="100%" height={400}>
+      {/* 🔥 ENTANGLEMENT GRAPH */}
+      <ResponsiveContainer width="100%" height={420}>
         <ScatterChart>
-          <CartesianGrid />
-          <XAxis dataKey="x" />
-          <YAxis dataKey="y" />
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+          <XAxis type="number" dataKey="x" />
+          <YAxis type="number" dataKey="y" />
           <Tooltip content={<NodeTooltip />} />
 
           {entGroups.map((g) => (
