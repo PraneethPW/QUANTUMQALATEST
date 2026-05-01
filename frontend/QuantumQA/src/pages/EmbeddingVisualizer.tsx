@@ -66,7 +66,7 @@ function buildDataset(nodes: VizNode[], mode: "raw" | "entangled") {
 }
 
 //////////////////////////////////////////////////////
-// 🔥 NEW: Dynamic comparison generator
+// 🔥 Dynamic comparison generator (changes per input)
 //////////////////////////////////////////////////////
 const generateDynamicComparison = (text: string) => {
   const seed = text.length
@@ -105,9 +105,6 @@ const EmbeddingVisualizer = () => {
   const [error, setError] = useState<string | null>(null)
 
   const [response, setResponse] = useState("")
-
-  // 🔥 NEW STATES
-  const [phraseResponse, setPhraseResponse] = useState("")
   const [comparisonData, setComparisonData] = useState<any[]>([])
 
   const entData = useMemo(
@@ -133,6 +130,7 @@ const EmbeddingVisualizer = () => {
     setError(null)
 
     try {
+      // 🔹 Embedding Visualization
       const res = await API.post<VizResponse>("/embedding-visualize", {
         text,
         include_phrases: includePhrases,
@@ -141,6 +139,7 @@ const EmbeddingVisualizer = () => {
 
       setData(res.data)
 
+      // 🔹 Quantum Response
       const qaRes = await API.post("/entangle-ask", {
         input1: text,
         input2: text
@@ -148,20 +147,12 @@ const EmbeddingVisualizer = () => {
 
       setResponse(qaRes.data.answer || "")
 
-      //////////////////////////////////////////////////////
-      // 🔥 NEW: Dynamic comparison + phrase model
-      //////////////////////////////////////////////////////
+      // 🔥 Dynamic comparison data (changes per input)
       setComparisonData(generateDynamicComparison(text))
-
-      setPhraseResponse(
-        `Phrase-level understanding of "${text}" focusing on surface meaning without deep relational reasoning.`
-      )
-      //////////////////////////////////////////////////////
 
     } catch (e: any) {
       setError("Failed to fetch data")
       setResponse("")
-      setPhraseResponse("")
     }
 
     setLoading(false)
@@ -210,9 +201,7 @@ const EmbeddingVisualizer = () => {
         </div>
       )}
 
-      //////////////////////////////////////////////////////
-      // 🔥 NEW GRAPH (ONLY ADDITION — NOTHING MODIFIED)
-      //////////////////////////////////////////////////////
+      {/* 🔥 NEW: MODEL COMPARISON GRAPH */}
       {response && comparisonData.length > 0 && (
         <div className="bg-white/5 border border-cyan-400/20 p-5 rounded-xl mt-6">
 
@@ -235,7 +224,6 @@ const EmbeddingVisualizer = () => {
 
         </div>
       )}
-      //////////////////////////////////////////////////////
 
       {/* ENTANGLEMENT GRAPH */}
       <ResponsiveContainer width="100%" height={420}>
